@@ -26,9 +26,12 @@ function tone(freq, durMs, { type = 'sine', gain = 0.25, when = 0 } = {}) {
   osc.stop(t0 + durMs / 1000);
 }
 
+// 진동 패턴은 화면을 못 보는 플레이어의 유일한 촉각 확인 수단 (Android 한정, iOS 미지원)
+// — 정답: 길게 1회 / Skip: 짧게 3회로 확실히 구분.
 export const sfx = {
-  correct() { tone(523, 120); tone(784, 200, { when: 100 }); vibrate(80); },
-  skip() { tone(392, 120); tone(262, 220, { when: 100 }); vibrate([40, 40, 40]); },
+  correct() { tone(523, 120); tone(784, 200, { when: 100 }); vibrate(250); },
+  skip() { tone(392, 120); tone(262, 220, { when: 100 }); vibrate([70, 60, 70, 60, 70]); },
+  rearm() { vibrate(30); }, // 재무장 — 다음 동작 인식 준비 완료 신호
   hint() { tone(660, 90, { type: 'triangle' }); tone(880, 90, { type: 'triangle', when: 90 }); },
   tick() { tone(880, 60, { gain: 0.15 }); },
   countdown() { tone(440, 150); },

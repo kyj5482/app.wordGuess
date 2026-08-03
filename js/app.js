@@ -26,6 +26,7 @@ function show(name) {
 const tilt = new TiltDetector({
   onCorrect: () => state.round?.correct(),
   onSkip: () => state.round?.skip(),
+  onRearm: () => sfx.rearm(), // 짧은 진동 — 다음 동작 인식 준비 완료 (화면 못 보는 플레이어용)
 });
 
 // ── 홈: 시작 버튼 한 번의 제스처에 권한+오디오+WakeLock을 묶는다 ──
@@ -201,7 +202,14 @@ function flash(kind) {
 // ── 결과 ────────────────────────────────────────────────
 function renderResult({ score, results }) {
   $('result-score').textContent = score;
+  const skips = results.filter(r => r.outcome !== 'correct').length;
+  const hints = results.reduce((n, r) => n + r.hintsUsed, 0);
+  $('result-summary').textContent = `⏭️ Skip ${skips} · 💡 Hint ${hints}`;
+
+  // 개별 단어 목록은 기본 접힘 — 원할 때만 펼침
   const list = $('result-list');
+  list.classList.add('hidden');
+  $('btn-toggle-details').textContent = 'Show words ▾';
   list.innerHTML = '';
   const mark = { correct: '✅', skip: '⏭️', timeup: '⏰' };
   for (const r of results) {
@@ -212,6 +220,12 @@ function renderResult({ score, results }) {
     list.appendChild(li);
   }
 }
+
+$('btn-toggle-details').addEventListener('click', () => {
+  const list = $('result-list');
+  const open = list.classList.toggle('hidden');
+  $('btn-toggle-details').textContent = open ? 'Show words ▾' : 'Hide words ▴';
+});
 
 $('btn-next-player').addEventListener('click', () => show('ready'));
 $('btn-change-category').addEventListener('click', () => { renderCategories(); show('category'); });

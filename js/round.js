@@ -4,7 +4,7 @@ import { markUsed } from './words.js';
 import { sfx } from './sound.js';
 
 const HINT_PENALTY_S = 5;
-const MAX_HINTS = 2;
+const MAX_HINTS = 1; // 힌트 1회: 그림이 있으면 그림+텍스트 함께, 없으면 텍스트만 (그림 단독 노출 없음)
 
 export class Round {
   constructor({ deck, timeLimitS, ui, onEnd }) {
@@ -64,16 +64,14 @@ export class Round {
   }
 
   // 힌트: 설명하는 친구가 화면 버튼 탭으로 발동. 시간 감점.
-  // 1회차: 이모지 있으면 그림, 없으면 텍스트. 2회차: 텍스트.
+  // 그림(이모지)이 있으면 그림+텍스트 함께, 없으면 텍스트만 — 그림 단독 노출 없음.
   hint() {
     if (this._ended || this.hintsUsed >= MAX_HINTS) return;
     const w = this.current;
-    // 이모지 없는 단어는 1회차에 바로 텍스트 → 힌트 1회로 끝
-    const showText = this.hintsUsed >= 1 || !w.emoji;
-    this.hintsUsed = showText ? MAX_HINTS : this.hintsUsed + 1;
+    this.hintsUsed++;
     this.remaining = Math.max(0, this.remaining - HINT_PENALTY_S);
     sfx.hint();
-    this.ui.hint({ emoji: w.emoji, text: showText ? w.textHint : null, penalty: HINT_PENALTY_S });
+    this.ui.hint({ emoji: w.emoji || null, text: w.textHint, penalty: HINT_PENALTY_S });
     this.ui.timer(this.remaining);
     if (this.remaining <= 0) this.end('timeup');
   }
