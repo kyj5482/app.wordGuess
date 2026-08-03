@@ -110,8 +110,10 @@ $('btn-round-start').addEventListener('click', async () => {
   acquireWakeLock();
   $('btn-round-start').classList.add('hidden');
   const cd = $('countdown');
+  cd.textContent = '3'; // 이전 라운드의 "1" 잔상 제거 — 1→3→2→1 버그 수정
   cd.classList.remove('hidden');
-  if (state.motionMode === 'motion') await tilt.start();
+  // 리스너 부착은 동기 — 1.5초 이벤트 프로브를 기다리지 않는다 (카운트다운 지연 원인)
+  if (state.motionMode === 'motion') tilt.start();
   for (const n of [3, 2, 1]) {
     cd.textContent = n;
     sfx.countdown();
