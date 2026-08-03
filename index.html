@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Word Guess</title>
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+<!-- HOME -->
+<section id="screen-home" class="screen active">
+  <div class="home-inner">
+    <h1 class="logo">Word<br>Guess</h1>
+    <p class="tagline">Hold the phone on your forehead.<br>Friends describe. You guess!</p>
+    <button id="btn-start" class="btn btn-primary btn-big">Start</button>
+    <p id="motion-status" class="motion-status"></p>
+  </div>
+</section>
+
+<!-- CATEGORY -->
+<section id="screen-category" class="screen">
+  <header class="top-bar">
+    <button class="btn-back" data-goto="home">←</button>
+    <h2>Pick a Category</h2>
+  </header>
+  <div id="category-grid" class="category-grid"></div>
+</section>
+
+<!-- SETTINGS -->
+<section id="screen-settings" class="screen">
+  <header class="top-bar">
+    <button class="btn-back" data-goto="category">←</button>
+    <h2 id="settings-category-name">Settings</h2>
+  </header>
+  <div class="settings-body">
+    <div class="setting-group">
+      <h3>Word Level</h3>
+      <div class="seg" id="seg-level">
+        <button data-level="1">Easy<small>K–2</small></button>
+        <button data-level="2">Hard<small>Gr 3–5</small></button>
+        <button data-level="mix" class="on">Mix<small>All</small></button>
+      </div>
+    </div>
+    <div class="setting-group">
+      <h3>Round Time</h3>
+      <div class="seg" id="seg-time">
+        <button data-time="45">45s</button>
+        <button data-time="60" class="on">60s</button>
+        <button data-time="90">90s</button>
+        <button data-time="120">120s</button>
+      </div>
+    </div>
+    <p id="deck-count" class="deck-count"></p>
+    <button id="btn-play" class="btn btn-primary btn-big">Play</button>
+  </div>
+</section>
+
+<!-- READY -->
+<section id="screen-ready" class="screen">
+  <div class="ready-inner">
+    <div id="rotate-tip" class="rotate-tip">🔄 Turn your phone sideways</div>
+    <div class="ready-emoji">📱👆🙂</div>
+    <h2>Hold the phone on your forehead</h2>
+    <p class="ready-help">
+      Tilt <b>down</b> = Correct ✅<br>
+      Tilt <b>up</b> = Skip ⏭️<br>
+      Friends tap <b>Hint</b> (−5s each)
+    </p>
+    <button id="btn-round-start" class="btn btn-primary btn-big">I'm Ready</button>
+    <div id="countdown" class="countdown hidden"></div>
+  </div>
+</section>
+
+<!-- ROUND -->
+<section id="screen-round" class="screen">
+  <div id="round-flash" class="round-flash"></div>
+  <div class="round-top">
+    <div id="round-timer" class="round-timer">60</div>
+    <div id="round-score" class="round-score">✅ 0</div>
+  </div>
+  <div class="round-word-area">
+    <div id="round-word" class="round-word">word</div>
+    <div id="hint-area" class="hint-area">
+      <div id="hint-emoji" class="hint-emoji"></div>
+      <div id="hint-text" class="hint-text"></div>
+    </div>
+  </div>
+  <div class="round-bottom">
+    <button id="btn-hint" class="btn btn-hint">💡 Hint <span id="hint-penalty">−5s</span></button>
+  </div>
+  <div id="tap-zones" class="tap-zones hidden">
+    <div id="tap-skip" class="tap-zone tap-skip">⏭️ Tap to Skip</div>
+    <div id="tap-correct" class="tap-zone tap-correct">✅ Tap for Correct</div>
+  </div>
+  <div id="feedback-big" class="feedback-big hidden"></div>
+</section>
+
+<!-- RESULT -->
+<section id="screen-result" class="screen">
+  <header class="top-bar"><h2>Round Over!</h2></header>
+  <div class="result-body">
+    <div id="result-score" class="result-score">0</div>
+    <p class="result-score-label">correct</p>
+    <ul id="result-list" class="result-list"></ul>
+    <div class="result-actions">
+      <button id="btn-next-player" class="btn btn-primary btn-big">Next Player ▶</button>
+      <button id="btn-change-category" class="btn btn-ghost">Change Category</button>
+    </div>
+  </div>
+</section>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>
