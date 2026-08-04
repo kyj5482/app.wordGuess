@@ -9,6 +9,24 @@ import { Calibration, TAPS_PER_PLAYER } from './calibrate.js';
 const $ = id => document.getElementById(id);
 const screens = ['home', 'category', 'settings', 'calibrate', 'ready', 'round', 'result'];
 
+// ── 전역 버튼 피드백 + 중복 클릭 방지 ──────────────────────
+// 모든 버튼 클릭에: 확인음 + 미세 진동 + 눌림 애니메이션.
+// 같은 버튼의 400ms 내 재클릭은 캡처 단계에서 차단 (더블 탭 오조작 방지).
+// 라운드 중 탭 존은 자체 디바운스가 있으므로 제외.
+const _lastClick = new WeakMap();
+document.addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn || btn.disabled) return;
+  const now = performance.now();
+  const last = _lastClick.get(btn) || 0;
+  if (now - last < 400) { e.stopImmediatePropagation(); e.preventDefault(); return; }
+  _lastClick.set(btn, now);
+  btn.classList.remove('pressed');
+  void btn.offsetWidth; // 애니메이션 재시작
+  btn.classList.add('pressed');
+  sfx.click();
+}, true);
+
 const state = {
   motionMode: 'unknown', // 'motion' | 'tap' | 'unknown'
   category: null, // {tag, name, emoji}
@@ -265,10 +283,16 @@ function tapAction(kind) {
 $('tap-correct').addEventListener('pointerdown', () => tapAction('correct'));
 $('tap-skip').addEventListener('pointerdown', () => tapAction('skip'));
 
+let hintLock = 0;
 $('btn-hint').addEventListener('pointerdown', e => {
   e.stopPropagation();
+  const now = performance.now();
+  if (now - hintLock < 400) return; // 더블 탭 → 이중 감점 방지
+  hintLock = now;
+  const b = $('btn-hint');
+  b.classList.remove('pressed'); void b.offsetWidth; b.classList.add('pressed');
   state.round?.hint();
-  if (state.round?.hintExhausted()) $('btn-hint').disabled = true;
+  if (state.round?.hintExhausted()) b.disabled = true;
 });
 
 // ── 라운드 UI 어댑터 ─────────────────────────────────────

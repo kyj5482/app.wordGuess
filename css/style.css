@@ -1,4 +1,6 @@
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* touch-action: 더블탭 줌 대기 제거 — 탭 반응 지연과 의도치 않은 더블 클릭의 주 원인 */
+button { touch-action: manipulation; }
 
 :root {
   --bg: #12141d;
@@ -30,9 +32,18 @@ body {
   border: none; border-radius: var(--radius); cursor: pointer;
   font-size: 1.1rem; font-weight: 700; color: var(--text);
   padding: 14px 22px; background: var(--card-hi);
-  transition: transform .08s;
+  transition: transform .08s, filter .08s;
 }
-.btn:active { transform: scale(.96); }
+.btn:active { transform: scale(.94); filter: brightness(1.35); }
+/* 눌림 확정 피드백: 클릭 처리 순간 잠깐 밝아졌다 돌아옴 (js에서 .pressed 부여) */
+.btn.pressed, .cat-card.pressed, .cal-word.pressed, .seg button.pressed {
+  animation: press-pop .25s ease-out;
+}
+@keyframes press-pop {
+  0% { transform: scale(.94); filter: brightness(1.5); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+.btn:disabled { opacity: .45; pointer-events: none; }
 .btn-primary { background: var(--accent); }
 .btn-big { font-size: 1.4rem; padding: 18px 48px; }
 .btn-ghost { background: transparent; color: var(--muted); }
@@ -72,7 +83,7 @@ body {
   display: flex; flex-direction: column; gap: 6px; align-items: center;
   transition: transform .08s;
 }
-.cat-card:active { transform: scale(.96); }
+.cat-card:active { transform: scale(.96); filter: brightness(1.3); }
 .cat-card .cat-emoji { font-size: 2rem; }
 .cat-card .cat-name { font-weight: 700; font-size: 1rem; }
 .cat-card .cat-count { color: var(--muted); font-size: .8rem; }
@@ -110,7 +121,7 @@ body {
   cursor: pointer; text-transform: capitalize; transition: transform .08s;
   min-height: 72px;
 }
-.cal-word:active { transform: scale(.95); }
+.cal-word:active { transform: scale(.95); filter: brightness(1.3); }
 .cal-word.flash { border-color: var(--correct); }
 .cal-word:disabled { opacity: .3; }
 .cal-progress {
