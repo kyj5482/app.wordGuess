@@ -20,7 +20,9 @@ body {
   user-select: none; -webkit-user-select: none;
 }
 
-.screen { display: none; min-height: 100dvh; flex-direction: column; }
+/* 주의: 100dvh는 iOS Safari에서 회전 후 주소창 표시/숨김 전환과 맞물려
+   값이 계속 재계산되며 화면이 떨리는 문제가 있다 → svh(고정값) 사용 */
+.screen { display: none; min-height: 100vh; min-height: 100svh; flex-direction: column; }
 .screen.active { display: flex; }
 .hidden { display: none !important; }
 
@@ -172,7 +174,7 @@ body.is-portrait .rotate-tip { display: block; }
 /* 목록은 원할 때만 펼침 — 펼쳐도 버튼이 밀려 내려가지 않게 내부 스크롤 */
 .result-list {
   list-style: none; width: 100%; overflow-y: auto;
-  max-height: 32dvh; flex: 0 1 auto;
+  max-height: 32svh; flex: 0 1 auto;
   display: flex; flex-direction: column; gap: 6px;
 }
 .result-list li {
