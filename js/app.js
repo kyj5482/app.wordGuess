@@ -141,6 +141,7 @@ $('btn-play').addEventListener('click', () => {
 // ── Auto 레벨 체크 (그룹 캘리브레이션) ──────────────────────
 function startCalibration() {
   state.cal = new Calibration(state.category.tag);
+  $('cal-handoff').classList.add('hidden');
   renderCalPlayer();
   show('calibrate');
 }
@@ -165,28 +166,44 @@ function renderCalPlayer() {
       sfx.hint();
       $('cal-progress-bar').style.width =
         Math.min(100, state.cal._current.tapCount / TAPS_PER_PLAYER * 100) + '%';
-      if (done) calNextPlayer();
+      if (done) calPlayerDone();
     });
     grid.appendChild(b);
   });
 }
 
-function calNextPlayer() {
+// 참가자 완료 → 전환 오버레이 (완료를 명확히 보여주고 다음 사람에게 폰 전달 유도)
+function calPlayerDone() {
   state.cal.finishPlayer();
-  renderCalPlayer();
+  const doneN = state.cal.players.length;
+  $('cal-done-num').textContent = doneN;
+  $('cal-next-num').textContent = doneN + 1;
+  $('cal-handoff').classList.remove('hidden');
+  sfx.correct();
 }
 
-$('btn-cal-done').addEventListener('click', calNextPlayer);
+$('btn-cal-done').addEventListener('click', calPlayerDone);
 
-$('btn-cal-finish').addEventListener('click', () => {
-  // 현재 참가자가 탭을 했으면 포함, 아니면 버림
-  if (state.cal._current.tapCount > 0) state.cal.finishPlayer();
+$('btn-cal-next').addEventListener('click', () => {
+  $('cal-handoff').classList.add('hidden');
+  renderCalPlayer();
+});
+
+function calFinish() {
+  // 그리드에서 탭하던 중이면 그 참가자도 포함 (오버레이에서 오면 이미 finish됨)
+  if (!$('cal-handoff').classList.contains('hidden')) {
+    $('cal-handoff').classList.add('hidden');
+  } else if (state.cal._current.tapCount > 0) {
+    state.cal.finishPlayer();
+  }
   if (state.cal.players.length === 0) return; // 아무도 안 함 → 무시
   state.autoLevel = state.cal.groupLevel();
   updateAutoStatus();
   sfx.go();
   show('ready');
-});
+}
+$('btn-cal-finish').addEventListener('click', calFinish);
+$('btn-cal-finish2').addEventListener('click', calFinish);
 
 // ── 준비 → 카운트다운 → 라운드 ───────────────────────────
 function updateOrientationTip() {

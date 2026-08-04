@@ -118,6 +118,15 @@ body {
 }
 #cal-progress-bar { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
 .cal-actions { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
+.cal-handoff {
+  position: absolute; inset: 0; z-index: 5; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; text-align: center; padding: 24px;
+}
+.cal-handoff-check { font-size: 4rem; }
+.cal-handoff h2 { font-size: 1.6rem; }
+.cal-handoff-sub { color: var(--muted); font-size: 1.05rem; margin-bottom: 8px; }
+#screen-calibrate { position: relative; }
 .deck-count { color: var(--muted); text-align: center; }
 #btn-play { margin-top: auto; }
 
