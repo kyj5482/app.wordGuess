@@ -7,6 +7,18 @@ const FILES = [
   'school-jobs-places.json',
   'play-culture.json',
   'actions-concepts.json',
+  'adv-nature-science.json',
+  'adv-society-places.json',
+  'adv-culture-tech.json',
+  'adv-actions-concepts.json',
+];
+
+// 레벨: 1=초등 저학년(K-2) 2=초등 고학년(3-5) 3=중고생 4=대학생/성인
+export const LEVELS = [
+  { level: 1, name: 'Easy', desc: 'K–2' },
+  { level: 2, name: 'Medium', desc: 'Gr 3–5' },
+  { level: 3, name: 'Hard', desc: 'Teen' },
+  { level: 4, name: 'Expert', desc: 'College' },
 ];
 
 export const CATEGORIES = [
@@ -55,23 +67,42 @@ export async function loadWords() {
   return all.length;
 }
 
-export function countFor(tag, maxLevel) {
-  return queryAll(tag, maxLevel).length;
+export function countFor(tag, levelSel) {
+  return queryAll(tag, levelSel).length;
 }
 
-function queryAll(tag, maxLevel) {
+// levelSel: 1~4(정확히 그 레벨) | 'mix'(전체) | 'auto'(캘리브레이션 결과 — matchLevel에서 처리)
+function matchLevel(w, levelSel, autoLevel) {
+  if (levelSel === 'mix') return true;
+  if (levelSel === 'auto') {
+    // 그룹 레벨 N: N 위주 + 한 단계 아래 섞기 → 인지율 ~70% 목표
+    const n = autoLevel || 2;
+    return w.level === n || w.level === Math.max(1, n - 1);
+  }
+  return w.level === Number(levelSel);
+}
+
+function queryAll(tag, levelSel, autoLevel) {
   return all.filter(w =>
-    (tag === '*' || w.tags.includes(tag)) &&
-    (maxLevel === 'mix' || w.level === Number(maxLevel))
+    (tag === '*' || w.tags.includes(tag)) && matchLevel(w, levelSel, autoLevel)
   );
 }
 
+// 캘리브레이션: 특정 레벨에서 무작위 단어 1개 (제외 목록 회피)
+export function sampleWord(tag, level, exclude) {
+  const pool = all.filter(w =>
+    (tag === '*' || w.tags.includes(tag)) && w.level === level && !exclude.has(w.word)
+  );
+  if (!pool.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 // 세션 내 재출제 금지 셔플 덱. 덱 소진 시에만 사용 기록 리셋.
-export function buildDeck(tag, level) {
-  let pool = queryAll(tag, level).filter(w => !usedThisSession.has(w.word));
+export function buildDeck(tag, level, autoLevel) {
+  let pool = queryAll(tag, level, autoLevel).filter(w => !usedThisSession.has(w.word));
   if (pool.length < 10) {
-    for (const w of queryAll(tag, level)) usedThisSession.delete(w.word);
-    pool = queryAll(tag, level);
+    for (const w of queryAll(tag, level, autoLevel)) usedThisSession.delete(w.word);
+    pool = queryAll(tag, level, autoLevel);
   }
   // Fisher–Yates
   for (let i = pool.length - 1; i > 0; i--) {

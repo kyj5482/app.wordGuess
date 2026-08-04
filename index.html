@@ -38,11 +38,15 @@
   <div class="settings-body">
     <div class="setting-group">
       <h3>Word Level</h3>
-      <div class="seg" id="seg-level">
+      <div class="seg seg-wrap" id="seg-level">
         <button data-level="1">Easy<small>K–2</small></button>
-        <button data-level="2">Hard<small>Gr 3–5</small></button>
+        <button data-level="2">Medium<small>Gr 3–5</small></button>
+        <button data-level="3">Hard<small>Teen</small></button>
+        <button data-level="4">Expert<small>College</small></button>
         <button data-level="mix" class="on">Mix<small>All</small></button>
+        <button data-level="auto">Auto<small>Level check</small></button>
       </div>
+      <p id="auto-status" class="auto-status hidden"></p>
     </div>
     <div class="setting-group">
       <h3>Round Time</h3>
@@ -55,6 +59,24 @@
     </div>
     <p id="deck-count" class="deck-count"></p>
     <button id="btn-play" class="btn btn-primary btn-big">Play</button>
+  </div>
+</section>
+
+<!-- CALIBRATE (Auto level check) -->
+<section id="screen-calibrate" class="screen">
+  <header class="top-bar">
+    <button class="btn-back" data-goto="settings">←</button>
+    <h2>Level Check</h2>
+  </header>
+  <div class="cal-body">
+    <p class="cal-player">Player <b id="cal-player-num">1</b> — tap the words you <b>know</b></p>
+    <p class="cal-help">Tap a word if you know what it means. A harder one takes its place. Skip words you don't know.</p>
+    <div id="cal-grid" class="cal-grid"></div>
+    <div class="cal-progress"><div id="cal-progress-bar"></div></div>
+    <div class="cal-actions">
+      <button id="btn-cal-done" class="btn">Done — Next Player ▶</button>
+      <button id="btn-cal-finish" class="btn btn-primary">Finish & Play</button>
+    </div>
   </div>
 </section>
 

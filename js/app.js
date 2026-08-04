@@ -4,15 +4,18 @@ import { loadWords, CATEGORIES, countFor, buildDeck } from './words.js';
 import { TiltDetector } from './tilt.js';
 import { Round } from './round.js';
 import { initAudio, sfx } from './sound.js';
+import { Calibration, TAPS_PER_PLAYER } from './calibrate.js';
 
 const $ = id => document.getElementById(id);
-const screens = ['home', 'category', 'settings', 'ready', 'round', 'result'];
+const screens = ['home', 'category', 'settings', 'calibrate', 'ready', 'round', 'result'];
 
 const state = {
   motionMode: 'unknown', // 'motion' | 'tap' | 'unknown'
   category: null, // {tag, name, emoji}
   level: localStorage.getItem('wg.level') || 'mix',
   time: Number(localStorage.getItem('wg.time') || 60),
+  autoLevel: null,  // Auto 캘리브레이션으로 확정된 그룹 레벨 (1~4)
+  cal: null,        // 진행 중인 Calibration 인스턴스
   round: null,
   lastResult: null,
   wakeLock: null,
@@ -105,17 +108,85 @@ function segInit(segId, key, apply) {
     });
   }
 }
-segInit('seg-level', 'level', v => { state.level = v; localStorage.setItem('wg.level', v); });
+segInit('seg-level', 'level', v => {
+  state.level = v;
+  localStorage.setItem('wg.level', v);
+  state.autoLevel = null; // Auto 재탭 = 다시 체크
+  updateAutoStatus();
+});
 segInit('seg-time', 'time', v => { state.time = Number(v); localStorage.setItem('wg.time', v); });
+
+function updateAutoStatus() {
+  const el = $('auto-status');
+  if (state.level !== 'auto') { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  const names = { 1: 'Easy', 2: 'Medium', 3: 'Hard', 4: 'Expert' };
+  el.textContent = state.autoLevel
+    ? `✓ Group level: ${names[state.autoLevel]} — tap Auto again to re-check`
+    : 'Press Play to run a quick level check (~20s per player)';
+}
 
 function updateDeckCount() {
   if (!state.category) return;
-  const n = countFor(state.category.tag, state.level);
+  const n = countFor(state.category.tag, state.level === 'auto' ? 'mix' : state.level);
   $('deck-count').textContent = n < 20 ? `⚠️ Only ${n} words in this mix` : `${n} words ready`;
   $('btn-play').disabled = n === 0;
 }
 
-$('btn-play').addEventListener('click', () => show('ready'));
+$('btn-play').addEventListener('click', () => {
+  if (state.level === 'auto' && !state.autoLevel) startCalibration();
+  else show('ready');
+});
+
+// ── Auto 레벨 체크 (그룹 캘리브레이션) ──────────────────────
+function startCalibration() {
+  state.cal = new Calibration(state.category.tag);
+  renderCalPlayer();
+  show('calibrate');
+}
+
+function renderCalPlayer() {
+  $('cal-player-num').textContent = state.cal.players.length + 1;
+  $('cal-progress-bar').style.width = '0%';
+  const slots = state.cal.startPlayer();
+  const grid = $('cal-grid');
+  grid.innerHTML = '';
+  slots.forEach((slot, i) => {
+    const b = document.createElement('button');
+    b.className = 'cal-word';
+    b.textContent = slot ? slot.word : '—';
+    b.disabled = !slot;
+    b.addEventListener('click', () => {
+      const { slot: next, done } = state.cal.tap(i);
+      b.classList.add('flash');
+      setTimeout(() => b.classList.remove('flash'), 250);
+      if (next) b.textContent = next.word;
+      else { b.textContent = '—'; b.disabled = true; }
+      sfx.hint();
+      $('cal-progress-bar').style.width =
+        Math.min(100, state.cal._current.tapCount / TAPS_PER_PLAYER * 100) + '%';
+      if (done) calNextPlayer();
+    });
+    grid.appendChild(b);
+  });
+}
+
+function calNextPlayer() {
+  state.cal.finishPlayer();
+  renderCalPlayer();
+}
+
+$('btn-cal-done').addEventListener('click', calNextPlayer);
+
+$('btn-cal-finish').addEventListener('click', () => {
+  // 현재 참가자가 탭을 했으면 포함, 아니면 버림
+  if (state.cal._current.tapCount > 0) state.cal.finishPlayer();
+  if (state.cal.players.length === 0) return; // 아무도 안 함 → 무시
+  state.autoLevel = state.cal.groupLevel();
+  updateAutoStatus();
+  sfx.go();
+  show('ready');
+});
 
 // ── 준비 → 카운트다운 → 라운드 ───────────────────────────
 function updateOrientationTip() {
@@ -145,7 +216,7 @@ $('btn-round-start').addEventListener('click', async () => {
 });
 
 function startRound() {
-  const deck = buildDeck(state.category.tag, state.level);
+  const deck = buildDeck(state.category.tag, state.level, state.autoLevel);
   tilt.calibrate(); // 이마 자세를 중립으로
 
   state.round = new Round({

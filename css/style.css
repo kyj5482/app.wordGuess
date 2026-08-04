@@ -91,6 +91,33 @@ body {
 }
 .seg button small { font-weight: 400; color: var(--muted); font-size: .75rem; }
 .seg button.on { border-color: var(--accent); background: var(--card-hi); }
+.seg-wrap { flex-wrap: wrap; }
+.seg-wrap button { flex: 1 1 28%; min-width: 90px; }
+.auto-status { color: var(--hint); font-size: .9rem; margin-top: 8px; }
+
+/* CALIBRATE */
+.cal-body {
+  flex: 1; display: flex; flex-direction: column; gap: 14px;
+  padding: 8px 20px max(20px, env(safe-area-inset-bottom));
+  max-width: 560px; margin: 0 auto; width: 100%;
+}
+.cal-player { font-size: 1.15rem; }
+.cal-help { color: var(--muted); font-size: .9rem; line-height: 1.45; }
+.cal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cal-word {
+  background: var(--card); border: 2px solid transparent; border-radius: 14px;
+  color: var(--text); font-size: 1.15rem; font-weight: 700; padding: 20px 8px;
+  cursor: pointer; text-transform: capitalize; transition: transform .08s;
+  min-height: 72px;
+}
+.cal-word:active { transform: scale(.95); }
+.cal-word.flash { border-color: var(--correct); }
+.cal-word:disabled { opacity: .3; }
+.cal-progress {
+  height: 8px; background: var(--card); border-radius: 999px; overflow: hidden;
+}
+#cal-progress-bar { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.cal-actions { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
 .deck-count { color: var(--muted); text-align: center; }
 #btn-play { margin-top: auto; }
 

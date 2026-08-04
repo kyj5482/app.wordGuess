@@ -13,8 +13,9 @@
 ```jsonc
 {
   "word": "elephant",            // 표시 형태 그대로 (소문자, 구는 공백 포함: "ice cream")
-  "level": 1,                    // 1 = K-2 (저학년), 2 = Grades 3-5 (고학년)
-                                 // 확장 예약: 0 = 유아, 3 = 중고생, 4 = 성인
+  "level": 1,                    // 1 = K-2 (저학년), 2 = Grades 3-5 (고학년),
+                                 // 3 = 중고생 (Teen), 4 = 대학생/성인 (College)
+                                 // 확장 예약: 0 = 유아
   "tags": ["animals", "zoo", "wild-animals"],  // 3~6개, 최소 1개는 §3 기본 카테고리 태그
   "textHint": "A very big gray animal with a long trunk and huge ears.",
                                  // 필수. 단어 자체를 포함하지 않는 1문장 영어 설명
@@ -56,7 +57,9 @@
 
 - **Level 1 (K–2, 5~8세)**: 아이가 일상에서 보고 말하는 단어. 사이트 워드/기초 어휘 수준. 예: dog, apple, run, red, bus.
 - **Level 2 (Grades 3–5, 8~11세)**: 학교 교과·독서에서 접하는 단어, 다음절어. 예: volcano, gymnastics, microscope, ancestor.
-- 판정 기준: Dolch/Fry 리스트, 미국 초등 교과 어휘를 참고. 애매하면 "2학년이 설명을 듣고 맞출 수 있는가"로 판단 (이 게임은 읽기가 아니라 **맞추기**이므로 듣고 아는 단어면 충분).
+- **Level 3 (중고생, 12~18세)**: 중등 교과·시사에서 접하는 단어. 예: ecosystem, democracy, algorithm, sarcastic.
+- **Level 4 (대학생/성인, 18세+)**: 교양 수준 성인 어휘 — 단 설명해서 맞출 수 있는 재미있는 단어만 (학술 전문용어 지양). 예: entropy, entrepreneur, procrastination, nostalgia.
+- 판정 기준: Dolch/Fry 리스트, 미국 교과 어휘를 참고. 애매하면 "해당 연령이 설명을 듣고 맞출 수 있는가"로 판단 (이 게임은 읽기가 아니라 **맞추기**이므로 듣고 아는 단어면 충분). 고급 파일은 `adv-*.json` 접두사.
 
 ## 5. 파일 구조와 검증 규칙
 

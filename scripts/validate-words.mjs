@@ -13,7 +13,7 @@ const BASE_TAGS = new Set([
 
 let errors = 0;
 const seen = new Map(); // word -> file
-const stats = { total: 0, level1: 0, level2: 0, emoji: 0, dupes: 0 };
+const stats = { total: 0, levels: { 1: 0, 2: 0, 3: 0, 4: 0 }, emoji: 0, dupes: 0 };
 const tagCount = new Map();
 
 for (const file of readdirSync(DIR).filter(f => f.endsWith('.json')).sort()) {
@@ -34,7 +34,7 @@ for (const file of readdirSync(DIR).filter(f => f.endsWith('.json')).sort()) {
     stats.total++;
     const id = `${file}:"${w.word}"`;
     if (!w.word || typeof w.word !== 'string') { console.error(`✗ ${id}: bad word`); errors++; continue; }
-    if (w.level !== 1 && w.level !== 2) { console.error(`✗ ${id}: level must be 1|2`); errors++; }
+    if (![1, 2, 3, 4].includes(w.level)) { console.error(`✗ ${id}: level must be 1-4`); errors++; }
     if (!Array.isArray(w.tags) || w.tags.length === 0) { console.error(`✗ ${id}: tags missing`); errors++; }
     else {
       if (!w.tags.some(t => BASE_TAGS.has(t))) { console.error(`✗ ${id}: no base-category tag`); errors++; }
@@ -47,13 +47,13 @@ for (const file of readdirSync(DIR).filter(f => f.endsWith('.json')).sort()) {
     }
     if (seen.has(w.word)) { stats.dupes++; console.warn(`⚠ dup "${w.word}" in ${file} (first: ${seen.get(w.word)}) — tags will merge at load`); }
     else seen.set(w.word, file);
-    if (w.level === 1) stats.level1++; else if (w.level === 2) stats.level2++;
+    if (stats.levels[w.level] !== undefined) stats.levels[w.level]++;
     if (w.emoji) stats.emoji++;
   }
 }
 
 console.log('\n── stats ──');
-console.log(`words: ${stats.total} (unique ${seen.size}) | L1 ${stats.level1} / L2 ${stats.level2} | emoji ${stats.emoji} (${Math.round(stats.emoji / stats.total * 100)}%) | cross-file dupes ${stats.dupes}`);
+console.log(`words: ${stats.total} (unique ${seen.size}) | L1 ${stats.levels[1]} / L2 ${stats.levels[2]} / L3 ${stats.levels[3]} / L4 ${stats.levels[4]} | emoji ${stats.emoji} (${Math.round(stats.emoji / stats.total * 100)}%) | cross-file dupes ${stats.dupes}`);
 console.log('base-tag coverage:');
 for (const t of [...BASE_TAGS]) console.log(`  ${t.padEnd(10)} ${tagCount.get(t) || 0}`);
 console.log(errors ? `\n✗ ${errors} error(s)` : '\n✓ all checks passed');
