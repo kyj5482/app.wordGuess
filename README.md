@@ -25,6 +25,17 @@ scripts/validate-words.mjs # 단어 DB 검증: node scripts/validate-words.mjs
 docs/                     # 요구사항·벤치마크·기술조사·DB 스펙·설계
 ```
 
+## 모션 인식 검증 (Motion Lab)
+
+실기기에서 https://kyj5482.github.io/app.wordGuess/motion-lab.html 접속:
+
+1. **센서 시작** → 실시간 각도·상태 게이지로 동작 확인
+2. **인식률 테스트** → 화면 지시(⬆SKIP/⬇정답)대로 12회 동작 → 인식률·지연 자동 집계 (목표 99%+)
+3. 테스트 중 원시 센서가 자동 기록됨 → **트레이스 다운로드** → `tests/traces/`에 커밋
+4. `node tests/tilt-replay.mjs` → 커밋된 실기기 트레이스를 현재 코드에 재생해 회귀 검증
+
+합성 시뮬레이션은 `node tests/tilt-sim.mjs`. 모션 로직(`js/tilt.js`) 수정 시 두 테스트 모두 통과해야 한다.
+
 ## 로컬 실행
 
 ```bash

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Motion Lab — Word Guess</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family:-apple-system,BlinkMacSystemFont,sans-serif; background:#12141d; color:#f2f4ff; min-height:100dvh; padding:16px; user-select:none; }
+h1 { font-size:1.3rem; margin-bottom:4px; }
+.sub { color:#8a90ad; font-size:.85rem; margin-bottom:16px; }
+.btn { border:none; border-radius:12px; cursor:pointer; font-size:1.05rem; font-weight:700; color:#f2f4ff; padding:14px 20px; background:#2a2e42; width:100%; margin-bottom:10px; }
+.btn-primary { background:#6c7bff; }
+.btn-warn { background:#f2a034; color:#111; }
+.btn:disabled { opacity:.4; }
+.panel { background:#1e2130; border-radius:14px; padding:14px; margin-bottom:12px; }
+.gauge-wrap { height:26px; background:#12141d; border-radius:999px; overflow:hidden; position:relative; margin:8px 0; }
+.gauge-mid { position:absolute; left:50%; top:0; bottom:0; width:2px; background:#8a90ad; }
+#gauge { position:absolute; top:0; bottom:0; left:50%; width:0; background:#6c7bff; transition:none; }
+.row { display:flex; justify-content:space-between; font-size:.9rem; padding:2px 0; }
+.row b { font-variant-numeric:tabular-nums; }
+#prompt { font-size:3rem; font-weight:900; text-align:center; padding:26px 0; min-height:110px; }
+#prompt.skip { color:#f2a034; } #prompt.correct { color:#2fbf71; }
+#test-result { font-size:1rem; line-height:1.6; }
+.ok { color:#2fbf71; } .bad { color:#ff5d5d; } .muted { color:#8a90ad; }
+#log { font-size:.8rem; color:#8a90ad; max-height:130px; overflow-y:auto; font-family:ui-monospace,monospace; line-height:1.5; }
+</style>
+</head>
+<body>
+<h1>🧪 Motion Lab</h1>
+<p class="sub">실기기 모션 인식 테스트 · 센서 트레이스 기록 (기록물은 tests/traces/에 넣고 tilt-replay.mjs로 재생)</p>
+
+<button id="btn-init" class="btn btn-primary">센서 시작 (권한 요청)</button>
+
+<div class="panel">
+  <div class="gauge-wrap"><div class="gauge-mid"></div><div id="gauge"></div></div>
+  <div class="row"><span>각도 (기준 대비)</span><b id="v-rel">–</b></div>
+  <div class="row"><span>절대 각도 / 기준</span><b><span id="v-abs">–</span> / <span id="v-rest">–</span></b></div>
+  <div class="row"><span>속도</span><b id="v-vel">–</b></div>
+  <div class="row"><span>상태 / 신호원</span><b><span id="v-state">–</span> · <span id="v-src">–</span></b></div>
+  <div class="row"><span>이벤트 주기</span><b id="v-rate">–</b></div>
+</div>
+
+<div class="panel">
+  <div id="prompt" class="muted">준비</div>
+  <button id="btn-test" class="btn btn-primary" disabled>인식률 테스트 (12회 동작)</button>
+  <div id="test-result"></div>
+</div>
+
+<button id="btn-record" class="btn" disabled>⏺ 트레이스 기록 시작</button>
+<button id="btn-export" class="btn" disabled>⬇ 트레이스 다운로드 (JSON)</button>
+<div class="panel"><div id="log"></div></div>
+
+<script type="module">
+import { TiltDetector } from './js/tilt.js';
+
+const $ = id => document.getElementById(id);
+const logEl = $('log');
+function log(msg) {
+  logEl.insertAdjacentHTML('afterbegin', `<div>${new Date().toISOString().slice(11,19)} ${msg}</div>`);
+}
+
+// ── 원시 이벤트 기록 (재생 파이프라인용 — 반드시 "가공 전" 값 저장) ──
+let recording = false;
+let trace = null;
+function startTrace(kind) {
+  trace = {
+    meta: { ua: navigator.userAgent, startedAt: new Date().toISOString(), kind,
+            screen: { w: screen.width, h: screen.height, orient: screen.orientation?.type } },
+    ori: [],   // [t, alpha, beta, gamma]
+    mot: [],   // [t, gx, gy, gz]
+    marks: [], // {t, intent} — 테스트 프롬프트가 뜬 시각
+    events: [],// {t, kind} — 감지기 판정
+  };
+  recording = true;
+}
+window.addEventListener('deviceorientation', e => {
+  if (recording) trace.ori.push([Math.round(performance.now()), e.alpha, e.beta, e.gamma]);
+});
+window.addEventListener('devicemotion', e => {
+  const g = e.accelerationIncludingGravity;
+  if (recording && g) trace.mot.push([Math.round(performance.now()), g.x, g.y, g.z]);
+});
+
+// ── 감지기 ──
+let lastEvents = [];
+let lastSampleT = 0, rateAcc = [], sampleCount = 0;
+const det = new TiltDetector({
+  onCorrect: () => { onDetect('CORRECT'); },
+  onSkip: () => { onDetect('SKIP'); },
+  onRearm: () => { if (navigator.vibrate) navigator.vibrate(30); log('rearm'); },
+  onSample: s => {
+    sampleCount++;
+    if (lastSampleT) rateAcc.push(s.t - lastSampleT);
+    if (rateAcc.length > 30) rateAcc.shift();
+    lastSampleT = s.t;
+    if (sampleCount % 3) return; // UI는 1/3만 갱신
+    const rel = s.ema - s.rest;
+    $('v-rel').textContent = rel.toFixed(0) + '°';
+    $('v-abs').textContent = s.ema.toFixed(0) + '°';
+    $('v-rest').textContent = s.rest.toFixed(0) + '°';
+    $('v-vel').textContent = s.vel.toFixed(0) + '°/s';
+    $('v-state').textContent = s.state;
+    $('v-src').textContent = s.src;
+    const avg = rateAcc.length ? rateAcc.reduce((a,b)=>a+b)/rateAcc.length : 0;
+    $('v-rate').textContent = avg ? (1000/avg).toFixed(0) + ' Hz' : '–';
+    const pct = Math.max(-1, Math.min(1, rel / 45)) * 50;
+    const g = $('gauge');
+    g.style.left = pct < 0 ? (50 + pct) + '%' : '50%';
+    g.style.width = Math.abs(pct) + '%';
+    g.style.background = Math.abs(rel) > 45 ? '#2fbf71' : '#6c7bff';
+  },
+});
+
+function onDetect(kind) {
+  lastEvents.push({ t: performance.now(), kind });
+  if (recording) trace.events.push({ t: Math.round(performance.now()), kind });
+  if (navigator.vibrate) navigator.vibrate(kind === 'CORRECT' ? 250 : [70,60,70]);
+  log(`<b class="${kind === 'CORRECT' ? 'ok' : ''}">${kind}</b>`);
+  testFlow.onEvent?.(kind);
+}
+
+$('btn-init').addEventListener('click', async () => {
+  const perm = await TiltDetector.requestPermission();
+  log('권한: ' + perm);
+  if (perm !== 'granted') return;
+  const probe = await det.start();
+  log('센서: ' + probe);
+  if (probe !== 'ok') return;
+  det.calibrate();
+  $('btn-init').textContent = '센서 동작 중 ✓ (탭하면 기준 재설정)';
+  $('btn-init').onclick = () => { det.calibrate(); log('기준 재설정'); };
+  $('btn-test').disabled = false;
+  $('btn-record').disabled = false;
+});
+
+// ── 인식률 테스트: 12회 랜덤 프롬프트 → 인식/오인식/미인식 집계 ──
+const testFlow = { running: false, onEvent: null };
+$('btn-test').addEventListener('click', async () => {
+  if (testFlow.running) return;
+  testFlow.running = true;
+  $('btn-test').disabled = true;
+  $('test-result').innerHTML = '';
+  startTrace('guided-test');
+  det.calibrate();
+
+  const seq = [];
+  for (let i = 0; i < 12; i++) seq.push(Math.random() < 0.5 ? 'SKIP' : 'CORRECT');
+  let hit = 0, wrong = 0, miss = 0, latSum = 0;
+
+  for (let i = 0; i < seq.length; i++) {
+    const intent = seq[i];
+    // 프롬프트 표시
+    const p = $('prompt');
+    p.textContent = intent === 'SKIP' ? '⬆ SKIP' : '⬇ 정답';
+    p.className = intent.toLowerCase();
+    const t0 = performance.now();
+    trace.marks.push({ t: Math.round(t0), intent });
+
+    const got = await new Promise(resolve => {
+      const timer = setTimeout(() => { testFlow.onEvent = null; resolve(null); }, 3500);
+      testFlow.onEvent = k => { clearTimeout(timer); testFlow.onEvent = null; resolve(k); };
+    });
+    if (!got) { miss++; p.textContent = '⏱ 미인식'; p.className = 'bad'; }
+    else if (got !== intent) { wrong++; p.textContent = '❌ 반대 인식'; p.className = 'bad'; }
+    else { hit++; latSum += performance.now() - t0; p.textContent = '✓'; p.className = 'ok'; }
+    await new Promise(r => setTimeout(r, 900)); // 다음 프롬프트 전 복귀 시간
+  }
+
+  recording = false;
+  const rate = Math.round(hit / seq.length * 100);
+  $('prompt').textContent = rate + '%';
+  $('prompt').className = rate >= 90 ? 'ok' : 'bad';
+  $('test-result').innerHTML =
+    `<span class="${rate >= 99 ? 'ok' : rate >= 90 ? '' : 'bad'}">인식 ${hit}/${seq.length} (${rate}%)</span>` +
+    ` · 오인식 ${wrong} · 미인식 ${miss}` +
+    (hit ? ` · 평균 지연 ${Math.round(latSum / hit)}ms` : '') +
+    `<br><span class="muted">트레이스가 저장됨 — 아래 버튼으로 다운로드해 tests/traces/에 커밋하면 회귀 테스트가 됩니다.</span>`;
+  $('btn-test').disabled = false;
+  $('btn-export').disabled = false;
+  testFlow.running = false;
+});
+
+// ── 자유 기록 ──
+$('btn-record').addEventListener('click', () => {
+  if (!recording) {
+    startTrace('free');
+    $('btn-record').textContent = '⏹ 기록 중지';
+    $('btn-record').classList.add('btn-warn');
+    log('기록 시작');
+  } else {
+    recording = false;
+    $('btn-record').textContent = '⏺ 트레이스 기록 시작';
+    $('btn-record').classList.remove('btn-warn');
+    $('btn-export').disabled = false;
+    log(`기록 종료: ori ${trace.ori.length} / mot ${trace.mot.length} 샘플`);
+  }
+});
+
+$('btn-export').addEventListener('click', () => {
+  if (!trace) return;
+  const blob = new Blob([JSON.stringify(trace)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `trace-${trace.meta.kind}-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+</script>
+</body>
+</html>
