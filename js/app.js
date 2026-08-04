@@ -29,17 +29,36 @@ const tilt = new TiltDetector({
   onRearm: () => sfx.rearm(), // 짧은 진동 — 다음 동작 인식 준비 완료 (화면 못 보는 플레이어용)
 });
 
+// 조용한 프로브: 리스너만 붙여 이벤트가 오는지 확인 — 권한이 이미 있으면
+// (Android 전체, iOS는 같은 브라우저 세션 내) 프롬프트 없이 모션 모드 확정.
+function quickProbe(ms = 350) {
+  return new Promise(resolve => {
+    let seen = false;
+    const h = e => { if (e.beta != null || e.gamma != null) seen = true; };
+    window.addEventListener('deviceorientation', h);
+    setTimeout(() => { window.removeEventListener('deviceorientation', h); resolve(seen); }, ms);
+  });
+}
+
 // ── 홈: 시작 버튼 한 번의 제스처에 권한+오디오+WakeLock을 묶는다 ──
 $('btn-start').addEventListener('click', async () => {
   initAudio();
   acquireWakeLock();
-  const perm = await TiltDetector.requestPermission();
-  if (perm === 'granted') {
-    const probe = await tilt.start();
-    tilt.stop();
-    state.motionMode = probe === 'ok' ? 'motion' : 'tap';
-  } else {
-    state.motionMode = 'tap';
+  if (state.motionMode === 'unknown') {
+    // 이전에 허용한 적 있으면 프로브 먼저 → 대부분 프롬프트 없이 통과.
+    // 첫 방문은 바로 requestPermission (프로브 지연으로 제스처 활성이 만료되지 않게).
+    const grantedBefore = localStorage.getItem('wg.motionOk') === '1';
+    let ok = grantedBefore && await quickProbe();
+    if (!ok) {
+      const perm = await TiltDetector.requestPermission();
+      if (perm === 'granted') {
+        const probe = await tilt.start();
+        tilt.stop();
+        ok = probe === 'ok';
+      }
+    }
+    state.motionMode = ok ? 'motion' : 'tap';
+    if (ok) localStorage.setItem('wg.motionOk', '1');
   }
   $('motion-status').textContent =
     state.motionMode === 'motion' ? '' : 'Motion off — tap the screen to play. ✋';

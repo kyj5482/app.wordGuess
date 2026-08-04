@@ -34,7 +34,7 @@ const HOME_GUARD = 25;      // deg — 판정은 홈(라운드 시작 이마 자
                             //       동작 방향으로 넘어간 경우만 인정. 극단 자세에서
                             //       재무장된 뒤 이마로 복귀하는 스윙의 오판을 차단.
 const COOLDOWN_MS = 600;    // 트리거 직후 절대 잠금 (복귀 스윙 흡수)
-const STABLE_WIN_MS = 250;  // 재무장: 이 시간 동안
+const STABLE_WIN_MS = 200;  // 재무장: 이 시간 동안 (250→200, 게임 템포 피드백)
 const STABLE_RANGE = 12;    // deg — 각도 변동 폭이 이내면 "안정"
 const STUCK_MS = 2500;      // 쿨다운 종료 후 이 시간 내 재무장 실패 시 강제 재무장
 const EMA_ALPHA = 0.3;

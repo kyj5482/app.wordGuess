@@ -115,7 +115,7 @@ const det = new TiltDetector({
 function onDetect(kind) {
   lastEvents.push({ t: performance.now(), kind });
   if (recording) trace.events.push({ t: Math.round(performance.now()), kind });
-  if (navigator.vibrate) navigator.vibrate(kind === 'CORRECT' ? 250 : [70,60,70]);
+  if (navigator.vibrate) navigator.vibrate(kind === 'CORRECT' ? 400 : [60,80,60]);
   log(`<b class="${kind === 'CORRECT' ? 'ok' : ''}">${kind}</b>`);
   testFlow.onEvent?.(kind);
 }
