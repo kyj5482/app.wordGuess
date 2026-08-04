@@ -29,6 +29,10 @@ const FAST_TH = 38;         // deg — 가속 경로: 이 각도 이상이면서
 const FAST_VEL = 160;       // deg/s — 같은 방향 속도 동반 시 조기 판정
 const REST_BAND = 18;       // deg — 이 범위 안이면 기준을 천천히 추종
 const REST_TRACK = 0.02;    // 기준 추종 속도 (샘플당)
+const MID_STABLE_MS = 280;  // deg — 중간 지대(REST_BAND~판정 미달)에 이 시간 동안
+                            //       안정적으로 머물면 그 자세를 새 기준으로 채택.
+                            //       (게이지 1/2쯤에서 멈추면 기준이 영영 안 따라와
+                            //       이후 판정이 비대칭해지던 사각지대 해소)
 
 const HOME_GUARD = 25;      // deg — 판정은 홈(라운드 시작 이마 자세)에서 이만큼
                             //       동작 방향으로 넘어간 경우만 인정. 극단 자세에서
@@ -169,7 +173,22 @@ export class TiltDetector {
           this._trigger('skip', now); return;
         }
         // 기준 근처에 머무는 동안 천천히 추종 (팔 처짐 등 자세 드리프트 흡수)
-        if (Math.abs(rel) < REST_BAND) this._rest += REST_TRACK * (a - this._rest);
+        if (Math.abs(rel) < REST_BAND) {
+          this._rest += REST_TRACK * (a - this._rest);
+        } else {
+          // 중간 지대(추종 밴드 밖 && 판정 미달)에 안정적으로 머물면 새 기준 채택
+          // — 동작하다 만 자세에서 게이지가 리셋되지 않던 사각지대
+          const winStart = now - MID_STABLE_MS;
+          const win = h.filter(s => s.t >= winStart);
+          if (win.length >= 3 && h[0].t <= winStart) {
+            let lo = Infinity, hi = -Infinity;
+            for (const s of win) { if (s.a < lo) lo = s.a; if (s.a > hi) hi = s.a; }
+            if (hi - lo < STABLE_RANGE && Math.abs(vel) < 50) {
+              this._rest = a;
+              this.onRearm(); // 미세 진동 — 기준 재설정 알림
+            }
+          }
+        }
         break;
       }
       case 'COOLDOWN': {

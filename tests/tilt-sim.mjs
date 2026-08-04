@@ -134,6 +134,25 @@ for (const [label, opts] of [
     ev.map(e => e.k).join(','));
 }
 
+// ── E. 중간 지대 사각: 판정 미달 각도(+35°)에 멈춘 뒤 양방향 동작 모두 인식 ──
+// (Motion Lab 실기기 관찰: 게이지 1/2쯤 갔다 멈추면 기준이 안 따라와 이후 오동작)
+{
+  const { ev, feed } = harness();
+  feed(35, 300);              // 동작하다 맘 — 판정(45°) 미달
+  feed(35, 1200);             // 그 자세로 머묾 → 새 기준으로 채택되어야 함
+  const t1 = t;
+  feed(100, 280); feed(100, 120); // skip: 새 기준(35) 대비 +65
+  feed(35, 300); feed(35, 900);
+  const t2 = t;
+  feed(-35, 300); feed(-35, 120); // correct: 새 기준 대비 −70
+  feed(35, 300); feed(35, 900);
+  const gotSkip = ev.some(e => e.t >= t1 && e.t < t2 && e.k === 'SKIP');
+  const gotCorrect = ev.some(e => e.t >= t2 && e.k === 'CORRECT');
+  const early = ev.filter(e => e.t < t1).length;
+  check('E. 중간 지대 정지 후 skip·correct 모두 인식', gotSkip && gotCorrect && early === 0,
+    ev.map(e => e.k).join(',') || '없음');
+}
+
 // ── D. devicemotion 폴백 (orientation 이벤트 부재 시) + iOS 부호 보정 ──
 {
   t = 0; seed = 42;
