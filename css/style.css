@@ -190,19 +190,24 @@ body.is-portrait .rotate-tip { display: block; }
 }
 .round-bottom {
   display: flex; justify-content: center;
-  padding: 0 20px max(20px, env(safe-area-inset-bottom)); z-index: 2;
+  /* 탭 존(z 3) 위 — 터치 모드에서도 힌트 버튼이 눌리게. 버튼 밖은 탭 존으로 통과 */
+  padding: 0 20px max(20px, env(safe-area-inset-bottom)); z-index: 4; pointer-events: none;
 }
+.round-bottom .btn { pointer-events: auto; }
 .btn-hint { background: var(--hint); color: #fff; font-size: 1.15rem; }
 .btn-hint:disabled { opacity: .35; }
 .btn-hint span { font-weight: 400; opacity: .85; font-size: .9rem; }
 
-/* tap-zone fallback */
-.tap-zones { position: absolute; inset: 0; display: flex; flex-direction: column; z-index: 3; }
+/* tap-zone — 터치 모드: 왼쪽 절반 Skip, 오른쪽 절반 Correct */
+.tap-zones { position: absolute; inset: 0; display: flex; z-index: 3; }
 .tap-zone {
-  flex: 1; display: flex; align-items: flex-start; justify-content: center;
-  font-weight: 700; color: rgba(255,255,255,.45); padding-top: 12px; font-size: .95rem;
+  flex: 1; display: flex; flex-direction: column; gap: 4px;
+  align-items: center; justify-content: flex-end;
+  font-weight: 700; color: rgba(255,255,255,.45);
+  font-size: 1rem; padding-bottom: max(24px, env(safe-area-inset-bottom));
 }
-.tap-correct { align-items: flex-end; padding-bottom: 84px; }
+.tap-zone .tz-emoji { font-size: 1.6rem; }
+.tap-skip { border-right: 1px dashed rgba(255,255,255,.15); }
 .feedback-big {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   font-size: 5rem; font-weight: 900; z-index: 4; pointer-events: none;

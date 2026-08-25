@@ -28,7 +28,8 @@ document.addEventListener('click', e => {
 }, true);
 
 const state = {
-  motionMode: 'unknown', // 'motion' | 'tap' | 'unknown'
+  motionMode: 'unknown', // 'motion' | 'tap' | 'unknown' — 기기의 모션 사용 가능 여부
+  controls: localStorage.getItem('wg.controls') || 'motion', // 'motion' | 'touch' — 사용자 선택
   category: null, // {tag, name, emoji}
   level: localStorage.getItem('wg.level') || 'mix',
   time: Number(localStorage.getItem('wg.time') || 60),
@@ -41,6 +42,18 @@ const state = {
 
 function show(name) {
   for (const s of screens) $(`screen-${s}`).classList.toggle('active', s === name);
+  if (name === 'ready') updateReadyHelp();
+}
+
+// 이번 라운드의 실제 조작 방식: 사용자가 터치를 골랐거나 모션이 불가하면 탭.
+function effectiveMode() {
+  return state.controls === 'touch' || state.motionMode !== 'motion' ? 'tap' : 'motion';
+}
+
+function updateReadyHelp() {
+  $('ready-help').innerHTML = effectiveMode() === 'tap'
+    ? 'Tap <b>right side</b> = Correct ✅<br>Tap <b>left side</b> = Skip ⏭️<br>Friends tap <b>Hint</b> (−5s each)'
+    : 'Tilt <b>down</b> = Correct ✅<br>Tilt <b>up</b> = Skip ⏭️<br>Friends tap <b>Hint</b> (−5s each)';
 }
 
 // ── 모션 감지기 ───────────────────────────────────────────
@@ -61,28 +74,34 @@ function quickProbe(ms = 350) {
   });
 }
 
+// 모션 가용 여부 확정 (권한 프롬프트 포함) — 반드시 사용자 제스처 안에서 호출.
+async function ensureMotion() {
+  if (state.motionMode !== 'unknown') return;
+  // 이전에 허용한 적 있으면 프로브 먼저 → 대부분 프롬프트 없이 통과.
+  // 첫 방문은 바로 requestPermission (프로브 지연으로 제스처 활성이 만료되지 않게).
+  const grantedBefore = localStorage.getItem('wg.motionOk') === '1';
+  let ok = grantedBefore && await quickProbe();
+  if (!ok) {
+    const perm = await TiltDetector.requestPermission();
+    if (perm === 'granted') {
+      const probe = await tilt.start();
+      tilt.stop();
+      ok = probe === 'ok';
+    }
+  }
+  state.motionMode = ok ? 'motion' : 'tap';
+  if (ok) localStorage.setItem('wg.motionOk', '1');
+}
+
 // ── 홈: 시작 버튼 한 번의 제스처에 권한+오디오+WakeLock을 묶는다 ──
 $('btn-start').addEventListener('click', async () => {
   initAudio();
   acquireWakeLock();
-  if (state.motionMode === 'unknown') {
-    // 이전에 허용한 적 있으면 프로브 먼저 → 대부분 프롬프트 없이 통과.
-    // 첫 방문은 바로 requestPermission (프로브 지연으로 제스처 활성이 만료되지 않게).
-    const grantedBefore = localStorage.getItem('wg.motionOk') === '1';
-    let ok = grantedBefore && await quickProbe();
-    if (!ok) {
-      const perm = await TiltDetector.requestPermission();
-      if (perm === 'granted') {
-        const probe = await tilt.start();
-        tilt.stop();
-        ok = probe === 'ok';
-      }
-    }
-    state.motionMode = ok ? 'motion' : 'tap';
-    if (ok) localStorage.setItem('wg.motionOk', '1');
-  }
+  // 터치 모드를 저장해 둔 사용자에게는 모션 권한을 묻지 않는다.
+  if (state.controls !== 'touch') await ensureMotion();
   $('motion-status').textContent =
-    state.motionMode === 'motion' ? '' : 'Motion off — tap the screen to play. ✋';
+    state.controls !== 'touch' && state.motionMode === 'tap'
+      ? 'Motion off — tap the screen to play. ✋' : '';
   renderCategories();
   show('category');
 });
@@ -114,7 +133,7 @@ function renderCategories() {
 function segInit(segId, key, apply) {
   const seg = $(segId);
   for (const b of seg.querySelectorAll('button')) {
-    if (b.dataset[key] === String(state[key === 'level' ? 'level' : 'time'])) {
+    if (b.dataset[key] === String(state[key])) {
       seg.querySelector('.on')?.classList.remove('on');
       b.classList.add('on');
     }
@@ -133,6 +152,7 @@ segInit('seg-level', 'level', v => {
   updateAutoStatus();
 });
 segInit('seg-time', 'time', v => { state.time = Number(v); localStorage.setItem('wg.time', v); });
+segInit('seg-controls', 'controls', v => { state.controls = v; localStorage.setItem('wg.controls', v); });
 
 function updateAutoStatus() {
   const el = $('auto-status');
@@ -237,8 +257,10 @@ $('btn-round-start').addEventListener('click', async () => {
   const cd = $('countdown');
   cd.textContent = '3'; // 이전 라운드의 "1" 잔상 제거 — 1→3→2→1 버그 수정
   cd.classList.remove('hidden');
+  // 홈에서 터치 모드로 건너뛴 뒤 설정에서 모션으로 바꾼 경우 — 이 제스처에서 권한 확정
+  if (state.controls === 'motion') await ensureMotion();
   // 리스너 부착은 동기 — 1.5초 이벤트 프로브를 기다리지 않는다 (카운트다운 지연 원인)
-  if (state.motionMode === 'motion') tilt.start();
+  if (effectiveMode() === 'motion') tilt.start();
   for (const n of [3, 2, 1]) {
     cd.textContent = n;
     sfx.countdown();
@@ -266,13 +288,14 @@ function startRound() {
     },
   });
 
-  $('tap-zones').classList.toggle('hidden', state.motionMode === 'motion');
+  $('tap-zones').classList.toggle('hidden', effectiveMode() === 'motion');
   $('round-score').textContent = '✅ 0';
   show('round');
   state.round.start();
 }
 
-// 탭 존 (폴백 전용 — 모션 모드에서는 숨김: 이마에 댄 폰의 접촉 오입력 방지)
+// 탭 존 — 터치 모드 선택 시 또는 모션 불가 폴백. 좌=Skip, 우=Correct.
+// (모션 모드에서는 숨김: 이마에 댄 폰의 접촉 오입력 방지)
 let tapLock = 0;
 function tapAction(kind) {
   const now = performance.now();
