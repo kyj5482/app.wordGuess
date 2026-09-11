@@ -1,17 +1,9 @@
 // 단어 로드·병합·카테고리 질의 (docs/04-word-db-spec.md)
 
-const FILES = [
-  'animals-nature.json',
-  'food-drink.json',
-  'everyday-life.json',
-  'school-jobs-places.json',
-  'play-culture.json',
-  'actions-concepts.json',
-  'adv-nature-science.json',
-  'adv-society-places.json',
-  'adv-culture-tech.json',
-  'adv-actions-concepts.json',
-];
+// 단어 파일 목록은 data/words/index.json 매니페스트가 단일 소스다.
+// 새 파일 추가 = JSON 파일 넣고 매니페스트에 한 줄 추가 (여기는 손댈 필요 없음).
+// 디렉토리와 매니페스트의 불일치는 scripts/validate-words.mjs가 에러로 잡는다.
+const MANIFEST = './data/words/index.json';
 
 // 레벨: 1=초등 저학년(K-2) 2=초등 고학년(3-5) 3=중고생 4=대학생/성인
 export const LEVELS = [
@@ -48,8 +40,18 @@ let all = [];
 const usedThisSession = new Set();
 
 export async function loadWords() {
+  let files;
+  try {
+    const r = await fetch(MANIFEST);
+    if (!r.ok) throw new Error(`manifest ${r.status}`);
+    files = (await r.json()).files;
+    if (!Array.isArray(files) || files.length === 0) throw new Error('manifest empty');
+  } catch (e) {
+    console.warn('word manifest failed:', e);
+    return 0; // 앱이 "Word data failed to load" 안내를 띄운다
+  }
   const results = await Promise.allSettled(
-    FILES.map(f => fetch(`./data/words/${f}`).then(r => {
+    files.map(f => fetch(`./data/words/${f}`).then(r => {
       if (!r.ok) throw new Error(`${f}: ${r.status}`);
       return r.json();
     }))

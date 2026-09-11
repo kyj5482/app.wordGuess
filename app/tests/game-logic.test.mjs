@@ -31,7 +31,14 @@ const { Calibration, SLOTS, TAPS_PER_PLAYER } = await import(`file://${WWW}/js/c
 // ── 단어 DB ──
 const total = await words.loadWords();
 check('단어 로드', total > 900, `${total}개`);
-check('단어 파일 수', readdirSync(WORDS_DIR).filter(f => f.endsWith('.json')).length === 10);
+{
+  // 매니페스트(index.json) ↔ 디렉토리 일치 — words.js는 매니페스트만 로드하므로
+  // 누락 파일은 조용히 무시된다. 앱 번들에서도 그 불일치가 없음을 보장.
+  const manifest = [...JSON.parse(readFileSync(join(WORDS_DIR, 'index.json'), 'utf8')).files].sort();
+  const onDisk = readdirSync(WORDS_DIR).filter(f => f.endsWith('.json') && f !== 'index.json').sort();
+  check('단어 파일 매니페스트 = 디렉토리', JSON.stringify(manifest) === JSON.stringify(onDisk),
+    `${onDisk.length}개 파일`);
+}
 
 {
   const deck3 = words.buildDeck('*', '3', null);
@@ -59,6 +66,43 @@ check('단어 파일 수', readdirSync(WORDS_DIR).filter(f => f.endsWith('.json'
   // 필수 필드: 모든 단어에 textHint (힌트는 그림+텍스트 원칙 — 텍스트 필수)
   const deck = words.buildDeck('*', 'mix', null);
   check('모든 단어에 textHint 존재', deck.every(w => typeof w.textHint === 'string' && w.textHint.length > 0));
+}
+
+// ── 20게임 중복률 (레벨별) ─────────────────────────────────
+// 모델: 60초 라운드 · 평균 4초/단어 ≈ 15단어/게임 → 20게임 = 300단어 소비.
+// 요구: 재출제 단어 비율 ≤ 20%. 실제 buildDeck/markUsed 로직으로 시뮬레이션
+// (덱 소진 시 사용 기록 리셋되는 동작 포함 — 단어 수가 부족하면 여기서 잡힌다).
+const WORDS_PER_GAME = 15, GAMES = 20;
+for (const level of ['1', '2', '3', '4']) {
+  // 레벨마다 새 세션 (usedThisSession이 모듈 상태라 재-import로 격리)
+  const w = await import(`file://${WWW}/js/words.js?dupsim=${level}`);
+  await w.loadWords();
+  const shows = [];
+  for (let g = 0; g < GAMES; g++) {
+    const deck = w.buildDeck('*', level, null);
+    for (const card of deck.slice(0, WORDS_PER_GAME)) {
+      w.markUsed(card.word);
+      shows.push(card.word);
+    }
+  }
+  const dup = shows.length - new Set(shows).size;
+  const rate = dup / shows.length;
+  check(`레벨 ${level}: 20게임(15단어/60초) 중복률 ≤ 20%`, shows.length === GAMES * WORDS_PER_GAME && rate <= 0.20,
+    `${shows.length}단어 중 재출제 ${dup}개 (${(rate * 100).toFixed(1)}%)`);
+}
+{
+  // Auto 모드(그룹 레벨 N = N + N−1 믹스)는 풀이 더 크므로 최악 케이스인 N=1만 확인
+  const w = await import(`file://${WWW}/js/words.js?dupsim=auto1`);
+  await w.loadWords();
+  const shows = [];
+  for (let g = 0; g < GAMES; g++) {
+    for (const card of w.buildDeck('*', 'auto', 1).slice(0, WORDS_PER_GAME)) {
+      w.markUsed(card.word);
+      shows.push(card.word);
+    }
+  }
+  const rate = (shows.length - new Set(shows).size) / shows.length;
+  check('Auto(그룹 레벨 1): 20게임 중복률 ≤ 20%', rate <= 0.20, `${(rate * 100).toFixed(1)}%`);
 }
 
 // ── 라운드 ──

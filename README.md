@@ -21,7 +21,9 @@
 ```
 index.html, css/, js/     # 정적 PoC 앱 (빌드 없음, 바닐라 JS 모듈) — 단일 소스
 data/words/*.json         # 단어 DB — 다중 태그, 텍스트 힌트(필수), 이모지 힌트(선택)
-scripts/validate-words.mjs # 단어 DB 검증: node scripts/validate-words.mjs
+data/words/index.json     # 단어 파일 매니페스트 — 새 파일은 여기 등록해야 로드됨
+scripts/validate-words.mjs # 단어 DB 검증: 매니페스트↔디렉토리 일치, 레벨별 최소 240단어
+                           #   (60초×20게임 기준 중복률 20% 이내 보장선)
 docs/                     # 요구사항·벤치마크·기술조사·DB 스펙·설계
 app/                      # iOS/Android 네이티브 앱 (Capacitor) — app/README.md 참고
 ```

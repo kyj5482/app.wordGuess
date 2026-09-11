@@ -1,0 +1,17 @@
+{
+  "comment": "단어 파일 매니페스트 — js/words.js가 이 목록을 로드한다. 새 파일 추가 시 여기에 등록. 디렉토리와의 불일치는 scripts/validate-words.mjs가 에러로 잡는다.",
+  "files": [
+    "animals-nature.json",
+    "food-drink.json",
+    "everyday-life.json",
+    "school-jobs-places.json",
+    "play-culture.json",
+    "actions-concepts.json",
+    "adv-nature-science.json",
+    "adv-society-places.json",
+    "adv-culture-tech.json",
+    "adv-actions-concepts.json",
+    "expansion-hard.json",
+    "expansion-expert.json"
+  ]
+}
