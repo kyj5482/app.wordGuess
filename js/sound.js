@@ -43,8 +43,10 @@ export const sfx = {
   rearm() { vibrate(30); }, // 재무장 — 다음 동작 인식 준비 완료 신호
   hint() { tone(660, 90, { type: 'triangle' }); tone(880, 90, { type: 'triangle', when: 90 }); },
   tick() { tone(880, 60, { gain: 0.15 }); },
-  countdown() { tone(440, 150); },
-  go() { tone(660, 300, { gain: 0.3 }); },
+  // 카운트다운·시작음에 예열 펄스 — 진동 모터(iOS는 Taptic)가 라운드 전에 깨어나
+  // 첫 정답/Skip 진동이 씹히지 않게 한다. 부수 효과: 촉각 카운트다운.
+  countdown() { tone(440, 150); vibrate(20); },
+  go() { tone(660, 300, { gain: 0.3 }); vibrate(60); },
   timeUp() { tone(330, 200); tone(262, 200, { when: 180 }); tone(196, 400, { when: 360 }); },
 };
 

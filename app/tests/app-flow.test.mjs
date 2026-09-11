@@ -117,6 +117,10 @@ function makeFeeder(env) {
   click($('btn-round-start'));
   const started = await pumpUntil(() => active() === 'screen-round', 4000);
   check('카운트다운(3·2·1) 후 라운드 시작', started);
+  // 진동 예열: 카운트다운 틱 3회(20ms) + 시작음(60ms)이 첫 정답 진동 전에 나가야 함
+  check('진동 예열: 카운트다운 펄스 3회 + 시작 펄스', vibrations.filter(v => v === 20).length === 3 &&
+    vibrations.includes(60) && !vibrations.includes(400),
+    JSON.stringify(vibrations));
   check('터치 모드: 탭 존 표시', !$('tap-zones').classList.contains('hidden'));
 
   const w1 = $('round-word').textContent;
