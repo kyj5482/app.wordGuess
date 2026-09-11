@@ -14,7 +14,9 @@ globalThis.performance = { now: () => t };
 // tilt.js 모듈 로드 시점이므로 반드시 import 전에 설정해야 한다 (동적 import).
 let UA = 'test';
 Object.defineProperty(globalThis, 'navigator', { get: () => ({ userAgent: UA }), configurable: true });
-const { TiltDetector } = await import('../js/tilt.js');
+// TILT_JS 환경변수로 검증 대상 모듈 교체 가능 (앱 빌드 산출물 회귀 검증용 — app/tests)
+const { TiltDetector } = await import(process.env.TILT_JS
+  ? new URL(process.env.TILT_JS, `file://${process.cwd()}/`).href : '../js/tilt.js');
 let oriL = null, motL = null;
 globalThis.window = {
   addEventListener: (k, f) => { if (k === 'deviceorientation') oriL = f; else motL = f; },

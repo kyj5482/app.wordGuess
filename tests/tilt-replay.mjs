@@ -26,7 +26,9 @@ globalThis.window = {
   addEventListener: (k, f) => { listeners[k] = f; },
   removeEventListener: k => { listeners[k] = null; },
 };
-const { TiltDetector } = await import('../js/tilt.js');
+// TILT_JS 환경변수로 검증 대상 모듈 교체 가능 (앱 빌드 산출물 회귀 검증용 — app/tests)
+const { TiltDetector } = await import(process.env.TILT_JS
+  ? new URL(process.env.TILT_JS, `file://${process.cwd()}/`).href : '../js/tilt.js');
 
 function replay(trace) {
   UA = trace.meta?.ua || '';

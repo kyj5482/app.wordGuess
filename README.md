@@ -19,11 +19,18 @@
 ## 구조
 
 ```
-index.html, css/, js/     # 정적 PoC 앱 (빌드 없음, 바닐라 JS 모듈)
+index.html, css/, js/     # 정적 PoC 앱 (빌드 없음, 바닐라 JS 모듈) — 단일 소스
 data/words/*.json         # 단어 DB — 다중 태그, 텍스트 힌트(필수), 이모지 힌트(선택)
 scripts/validate-words.mjs # 단어 DB 검증: node scripts/validate-words.mjs
 docs/                     # 요구사항·벤치마크·기술조사·DB 스펙·설계
+app/                      # iOS/Android 네이티브 앱 (Capacitor) — app/README.md 참고
 ```
+
+## 앱 (iOS/Android)
+
+웹 코드를 그대로 재사용하는 Capacitor 앱이 `app/`에 있다. 게임·모션 코드는 웹과
+바이트 단위로 동일하며(빌드 시 복사), 앱 전용 차이는 `app/native/native.js` 하나뿐.
+`cd app && npm test`로 모션 회귀 포함 전체 앱 테스트 실행. 상세: [app/README.md](app/README.md)
 
 ## 모션 인식 검증 (Motion Lab)
 

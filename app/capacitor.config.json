@@ -1,0 +1,11 @@
+{
+  "appId": "io.github.kyj5482.wordguess",
+  "appName": "Word Guess",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "ios": {
+    "contentInset": "never"
+  }
+}

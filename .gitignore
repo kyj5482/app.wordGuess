@@ -1,0 +1,3 @@
+# 앱(Capacitor) 빌드 산출물 — app/www는 scripts/build.mjs가 루트에서 생성
+app/node_modules/
+app/www/

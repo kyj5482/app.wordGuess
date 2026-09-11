@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Word Guess</string>
+    <string name="title_activity_main">Word Guess</string>
+    <string name="package_name">io.github.kyj5482.wordguess</string>
+    <string name="custom_url_scheme">io.github.kyj5482.wordguess</string>
+</resources>
